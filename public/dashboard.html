@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #181c20; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; }
+        .header { background: #23272b; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; }
+        .content { padding: 30px; }
+        .clients-list { margin-bottom: 30px; }
+        .client { background: #23272b; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .client span { font-size: 18px; }
+        .screenshots { display: flex; flex-wrap: wrap; gap: 20px; }
+        .screenshot { background: #23272b; border-radius: 8px; padding: 10px; }
+        .screenshot img { max-width: 300px; border-radius: 6px; }
+        .logout { position: absolute; right: 30px; top: 20px; background: #4f8cff; color: #fff; border: none; border-radius: 5px; padding: 8px 16px; font-size: 15px; cursor: pointer; }
+        .logout:hover { background: #376ad8; }
+    </style>
+</head>
+<body>
+    <div class="header">Kontrol Paneli <button class="logout" onclick="logout()">Çıkış</button></div>
+    <div class="content">
+        <div class="clients-list">
+            <h3>Bağlı Bilgisayarlar</h3>
+            <select id="clientSelect" style="width:100%;padding:10px;font-size:16px;margin-bottom:15px;"></select>
+        </div>
+        <div>
+            <h3>İşlem Gönder</h3>
+            <select id="commandSelect" style="width:100%;padding:10px;font-size:16px;margin-bottom:10px;" onchange="toggleNircmdInput()">
+                <option value="screenshot">Ekran Görüntüsü Al</option>
+                <option value="shutdown">Bilgisayarı Kapat</option>
+                <option value="nircmd">Nircmd Komutu</option>
+            </select>
+            <input id="nircmdInput" type="text" placeholder="nircmd parametreleri (örn: mutesysvolume 1)" style="width:100%;padding:10px;font-size:16px;margin-bottom:10px;display:none;" />
+            <button onclick="sendCommand()" style="width:100%;padding:12px;font-size:16px;background:#4f8cff;color:#fff;border:none;border-radius:5px;cursor:pointer;">Komutu Gönder</button>
+        </div>
+        <div>
+            <h3>Ekran Görüntüleri</h3>
+            <div class="screenshots" id="screenshots"></div>
+        </div>
+    </div>
+    <script>
+        let clientsList = [];
+        async function fetchClients() {
+            const res = await fetch('/api/clients');
+            const data = await res.json();
+            clientsList = data.clients;
+            const select = document.getElementById('clientSelect');
+            select.innerHTML = '';
+            data.clients.forEach(client => {
+                const opt = document.createElement('option');
+                opt.value = client.id;
+                opt.textContent = `${client.id} (${client.ip})`;
+                select.appendChild(opt);
+            });
+        }
+        async function fetchScreenshots() {
+            const res = await fetch('/api/screenshots');
+            const data = await res.json();
+            const screenshotsDiv = document.getElementById('screenshots');
+            screenshotsDiv.innerHTML = '';
+            data.screenshots.forEach(ss => {
+                const el = document.createElement('div');
+                el.className = 'screenshot';
+                el.innerHTML = `<img src="/screenshots/${ss}" alt="Ekran Görüntüsü">`;
+                screenshotsDiv.appendChild(el);
+            });
+        }
+        async function sendCommand() {
+            const clientId = document.getElementById('clientSelect').value;
+            const command = document.getElementById('commandSelect').value;
+            let nircmdArgs = '';
+            if (command === 'nircmd') {
+                nircmdArgs = document.getElementById('nircmdInput').value.trim();
+                if (!nircmdArgs) return alert('Lütfen nircmd parametrelerini girin.');
+            }
+            if (!clientId) return alert('Lütfen bir bilgisayar seçin.');
+            const res = await fetch('/api/send-command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId, command, nircmdArgs })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Komut gönderildi!');
+            } else {
+                alert('Komut gönderilemedi: ' + (data.message || 'Bilinmeyen hata'));
+            }
+        }
+        function toggleNircmdInput() {
+            const command = document.getElementById('commandSelect').value;
+            document.getElementById('nircmdInput').style.display = command === 'nircmd' ? 'block' : 'none';
+        }
+        function logout() {
+            localStorage.removeItem('auth');
+            window.location.href = '/login.html';
+        }
+        // Basit auth kontrolü (geliştirilebilir)
+        if (!localStorage.getItem('auth')) {
+            window.location.href = '/login.html';
+        } else {
+            fetchClients();
+            fetchScreenshots();
+        }
+    </script>
+</body>
+</html> 

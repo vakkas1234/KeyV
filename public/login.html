@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #181c20; color: #fff; font-family: 'Roboto', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-container { background: #23272b; padding: 40px 30px; border-radius: 10px; box-shadow: 0 4px 24px #0008; width: 350px; }
+        .login-container h2 { margin-bottom: 24px; text-align: center; }
+        .login-container input { width: 100%; padding: 12px; margin: 10px 0; border: none; border-radius: 5px; background: #2c3136; color: #fff; font-size: 16px; }
+        .login-container button { width: 100%; padding: 12px; background: #4f8cff; color: #fff; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        .login-container button:hover { background: #376ad8; }
+        .error { color: #ff6b6b; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Yönetici Girişi</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Kullanıcı Adı" required>
+            <input type="password" id="password" placeholder="Şifre" required>
+            <button type="submit">Giriş Yap</button>
+            <div class="error" id="errorMsg" style="display:none;"></div>
+        </form>
+    </div>
+    <script>
+        document.getElementById('loginForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('auth', 'true');
+                window.location.href = '/dashboard.html';
+            } else {
+                document.getElementById('errorMsg').innerText = data.message;
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html> 
